@@ -45,10 +45,23 @@ class Loop:
     def render(self, t):
         print( self.loop[t])
 
-    
+class Sequencer:
+    loops = []
+    bpm = 111
+    delay = 60.0 / bpm
 
-bpm = 111
-delay = 60.0 / bpm
+    def play(self):
+        t = 0
+        while True:
+            for l in self.loops:
+                l.play(t)
+                l.render(t)
+            # as time goes by
+            t+=1
+            if t == len(l0.loop):
+                t = 0
+            sleep(self.delay)
+
 l0 = Loop()
 l1 = Loop()
 l1.loop =  [
@@ -61,14 +74,7 @@ l1.loop =  [
         [1, 0, 1, 0, 1, 1, 1, 1],
     ]
 l1.notas = range(60,80)
-t = 0
-while True:
-    l1.play(t)
-    l0.play(t)
-    l1.render(t)
-    l0.render(t)
-    # as time goes by
-    t+=1
-    if t == len(l0.loop):
-        t = 0
-    sleep(delay)
+
+s = Sequencer()
+s.loops = [l0, l1]
+s.play()
