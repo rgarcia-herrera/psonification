@@ -4,12 +4,11 @@ from mingus.containers import Note
 
 
 class Loop:
-    def __init__(self, roll, mask, scale, instrument, name):
+    def __init__(self, roll, mask, scale, instrument=None):
         self.roll = roll
         self.mask = mask
         self.scale = scale
         self.instrument = instrument
-        self.name = name
         self.current = [False for i in range(0, len(self.roll[0]))]
 
     def on(self, i, velocity=64):
@@ -47,7 +46,7 @@ class Loop:
 
     def render(self, t):
         tt = t % len(self.roll)
-        print(self.name, self.roll[tt])
+        print self.instrument.name, self.roll[tt]
 
 
 class Sequencer:
