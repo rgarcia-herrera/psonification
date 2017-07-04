@@ -5,8 +5,9 @@ from mingus.containers import Note
 
 
 class Loop:
-    def __init__(self, roll, scale, instrument, name):
+    def __init__(self, roll, mask, scale, instrument, name):
         self.roll = roll
+        self.mask = mask        
         self.scale = scale
         self.instrument = instrument
         self.name = name
@@ -15,7 +16,19 @@ class Loop:
         tt = t % len(self.roll)
         for i in range(0,len(self.roll[tt])):
             if self.roll[tt][i]:
-                if not self.roll[tt-1][i]:
+                if self.roll[tt-1][i]:
+                    # previous is 1, current is 1
+                    if self.mask[tt-1][i] == 0:
+                        # interrupt sound if mask is 0
+                        self.instrument.send(
+                            mido.Message('note_off',
+                                         note=self.scale[i],
+                                         velocity=64))                        
+                        self.instrument.send(
+                            mido.Message('note_on',
+                                         note=self.scale[i],
+                                         velocity=64))
+                else:
                     # previous is 0, current is 1
                     self.instrument.send(mido.Message('note_on',
                                                       note=self.scale[i],
