@@ -7,45 +7,48 @@ from mingus.containers import Note
 class Loop:
     def __init__(self, roll, mask, scale, instrument, name):
         self.roll = roll
-        self.mask = mask        
+        self.mask = mask
         self.scale = scale
         self.instrument = instrument
         self.name = name
+        self.current = [False for i in range(0, len(self.roll[0]))]
 
+    def on(self, i, velocity=64):
+        self.instrument.send(
+            mido.Message('note_on',
+                         note=self.scale[i],
+                         velocity=velocity))
+        self.current[i] = True
+        
+    def off(self, i):
+        self.instrument.send(mido.Message('note_off',
+                                          note=self.scale[i]))
+        self.current[i] = False
+        
     def play(self, t):
-        tt = t % len(self.roll)
-        for i in range(0,len(self.roll[tt])):
-            if self.roll[tt][i]:
-                if self.roll[tt-1][i]:
-                    # previous is 1, current is 1
-                    if self.mask[tt-1][i] == 0:
-                        # interrupt sound if mask is 0
-                        self.instrument.send(
-                            mido.Message('note_off',
-                                         note=self.scale[i],
-                                         velocity=64))                        
-                        self.instrument.send(
-                            mido.Message('note_on',
-                                         note=self.scale[i],
-                                         velocity=64))
+        t = t % len(self.roll)
+        for i in range(0,len(self.roll[t])):
+            now = self.roll[t][i]
+
+            if not self.current[i] and now > 0: # from silence to on
+                self.on(i, velocity=now)
+            elif self.current[i] and now == 0: # from playing to off
+                self.off(i)
+            elif self.current[i] and now > 0: # playing, maybe staccato
+                if self.mask[t][i] == 1: # interrupt sound if mask is 1
+                    self.off(i)
+                    self.on(i, velocity=now)
                 else:
-                    # previous is 0, current is 1
-                    self.instrument.send(mido.Message('note_on',
-                                                      note=self.scale[i],
-                                                      velocity=64))
-            else:
-                if self.roll[tt-1][i]:
-                    # previous is 1, current is 0
-                    self.instrument.send(mido.Message('note_off',
-                                                      note=self.scale[i]))
+                    pass # if mask == 0 keep note_on from previous t
+
 
     def mute(self):
         for i in range(0,len(self.roll[0])):
             self.instrument.send(mido.Message('note_off',
                                               note=self.scale[i]))
-        
+
     def render(self, t):
-        tt = t % len(self.roll)        
+        tt = t % len(self.roll)
         print(self.name, self.roll[tt])
 
 
@@ -53,11 +56,13 @@ class Sequencer:
 
     def __init__(self, loops=[], bpm=30):
         self.loops = loops
-        bpm = bpm
-        self.delay = 60.0 / bpm
+        self.set_bpm(bpm)
 
         # find longest loop
         self.longest = max([len(l.roll) for l in self.loops])
+
+    def set_bpm(self, bpm):
+        self.delay = 60.0 / bpm
 
     def play(self):
         for t in range(self.longest):
@@ -67,8 +72,8 @@ class Sequencer:
             # as time goes by
             sleep(self.delay)
 
-        for l in self.loops:
-            l.mute()
+        #for l in self.loops:
+        #    l.mute()
 
 
 
