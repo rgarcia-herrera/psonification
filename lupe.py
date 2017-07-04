@@ -1,4 +1,3 @@
-import pprint
 from time import sleep
 import mido
 from mingus.containers import Note
@@ -19,31 +18,30 @@ class Loop:
                          note=self.scale[i],
                          velocity=velocity))
         self.current[i] = True
-        
+
     def off(self, i):
         self.instrument.send(mido.Message('note_off',
                                           note=self.scale[i]))
         self.current[i] = False
-        
+
     def play(self, t):
         t = t % len(self.roll)
-        for i in range(0,len(self.roll[t])):
+        for i in range(0, len(self.roll[t])):
             now = self.roll[t][i]
 
-            if not self.current[i] and now > 0: # from silence to on
+            if not self.current[i] and now > 0:  # from silence to on
                 self.on(i, velocity=now)
-            elif self.current[i] and now == 0: # from playing to off
+            elif self.current[i] and now == 0:   # from playing to off
                 self.off(i)
-            elif self.current[i] and now > 0: # playing, maybe staccato
-                if self.mask[t][i] == 1: # interrupt sound if mask is 1
+            elif self.current[i] and now > 0:    # playing, maybe staccato
+                if self.mask[t][i] == 1:  # interrupt sound if mask is 1
                     self.off(i)
                     self.on(i, velocity=now)
                 else:
-                    pass # if mask == 0 keep note_on from previous t
-
+                    pass  # if mask == 0 keep note_on from previous t
 
     def mute(self):
-        for i in range(0,len(self.roll[0])):
+        for i in range(0, len(self.roll[0])):
             self.instrument.send(mido.Message('note_off',
                                               note=self.scale[i]))
 
@@ -69,12 +67,7 @@ class Sequencer:
             for l in self.loops:
                 l.play(t)
                 l.render(t)
-            # as time goes by
             sleep(self.delay)
-
-        #for l in self.loops:
-        #    l.mute()
-
 
 
 def scale2ints(minguscale, key='C', span=2, octave=3):
