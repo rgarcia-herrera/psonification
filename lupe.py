@@ -5,34 +5,37 @@ from mingus.containers import Note
 
 class Loop:
     def __init__(self, roll, mask, scale, instrument=None):
+        self.set_roll(roll, mask, scale)
+        self.instrument = instrument
+
+    def set_roll(self, roll, mask, scale):
         self.roll = roll
+        self.playing = [False for i in range(0, len(self.roll[0]))]
         self.mask = mask
         self.scale = scale
-        self.instrument = instrument
-        self.current = [False for i in range(0, len(self.roll[0]))]
 
     def on(self, i, velocity=64):
         self.instrument.send(
             mido.Message('note_on',
                          note=self.scale[i],
                          velocity=velocity))
-        self.current[i] = True
+        self.playing[i] = True
 
     def off(self, i):
         self.instrument.send(mido.Message('note_off',
                                           note=self.scale[i]))
-        self.current[i] = False
+        self.playing[i] = False
 
     def play(self, t):
         t = t % len(self.roll)
         for i in range(0, len(self.roll[t])):
             now = self.roll[t][i]
 
-            if not self.current[i] and now > 0:  # from silence to on
+            if not self.playing[i] and now > 0:  # from silence to on
                 self.on(i, velocity=now)
-            elif self.current[i] and now == 0:   # from playing to off
+            elif self.playing[i] and now == 0:   # from playing to off
                 self.off(i)
-            elif self.current[i] and now > 0:    # playing, maybe staccato
+            elif self.playing[i] and now > 0:    # playing, maybe staccato
                 if self.mask[t][i] == 1:  # interrupt sound if mask is 1
                     self.off(i)
                     self.on(i, velocity=now)
@@ -67,6 +70,11 @@ class Sequencer:
                 l.play(t)
                 l.render(t)
             sleep(self.delay)
+
+    def loop(self):
+        while True:
+            self.play()
+            self.reload()
 
 
 def scale2ints(minguscale, key='C', span=2, octave=3):
