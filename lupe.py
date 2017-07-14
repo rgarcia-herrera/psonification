@@ -1,18 +1,20 @@
 from time import sleep
 import mido
 from mingus.containers import Note
+from pony.orm import Database, PrimaryKey, Required, Json
+
+db = Database()
 
 
-class Loop:
-    def __init__(self, roll, mask, scale, instrument=None):
-        self.set_roll(roll, mask, scale)
-        self.instrument = instrument
+class Loop(db.Entity):
+    id = PrimaryKey(int, auto=True)
+    roll = Required(Json)
+    mask = Required(Json)
+    scale = Required(Json)
 
-    def set_roll(self, roll, mask, scale):
-        self.roll = roll
+    def __init__(self, *args, **kwargs):
+        super(Loop, self).__init__(*args, **kwargs)
         self.playing = [False for i in range(0, len(self.roll[0]))]
-        self.mask = mask
-        self.scale = scale
 
     def on(self, i, velocity=64):
         self.instrument.send(
